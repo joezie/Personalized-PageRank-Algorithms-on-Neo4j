@@ -13,7 +13,6 @@ import org.neo4j.graphdb.Transaction;
 
 public class Algo_Util { // functions used by each algorithm
 	protected String node_property;
-	//protected HashMap<Node, Vector<Node>> extracted_graph; // (node, in/out neighbors)
 	
 	public Algo_Util(String node_property) {
 		this.node_property = node_property;
@@ -78,32 +77,4 @@ public class Algo_Util { // functions used by each algorithm
 		arr[i1] = arr[i2];
 		arr[i2] = tmp;
 	}
-
-	
-	/*
-	protected void extract_graph(GraphDatabaseService graphDb, Direction dir) { 
-		// extract graph of certain direction and store in extracted_graph
-		
-		extracted_graph = new HashMap<>();
-		try (Transaction tx = graphDb.beginTx()) {
-			for (Node node : graphDb.getAllNodes()) {
-				Vector<Node> dir_neighbors = new Vector<>();
-				for (Relationship rel : node.getRelationships(dir)) 
-					dir_neighbors.add(rel.getOtherNode(node));
-				extracted_graph.put(node, dir_neighbors);
-			}
-			tx.success();
-		}
-	}
-	*/
-	/*
-	public static void main( String[] args ) throws IOException {
-		Double arr[] = {1.0, 3.0, 4.0, 2.0, 5.0};
-		Fora_Util fu_t = new Fora_Util();
-		for (int k = 0; k < arr.length; k++) {
-			Double kth_element = fu_t.kth_ppr(arr, k);
-			System.out.println(k + "th element:" + kth_element);
-		}
-	}
-	*/
 }
