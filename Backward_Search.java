@@ -35,7 +35,7 @@ public class Backward_Search { // All-Pair-Backward-Search algorithm based on ba
 	
 	private static long startTime = 0, endTime = 0, duration = 0;
 	
-	public void backward_search_whole_graph(Long nodeId_target) { // backward push for whole graph ppr
+	public void backward_search_whole_graph(Long nodeId_target) { // Single-Source PPR compute
 		startTime = System.nanoTime();
 		residue.clear();
 		reserve.clear();
