@@ -7,10 +7,7 @@ public interface Preprocessing_Interface {
 	
 	public void readPreprocessedPPR(Long nodeId_start);
 	// read pprs from file corresponding to src node and store in a member variable 
-	
-	//public Object getPreprocessedPPR();
-	// return the reference of the member variable that stores the preprocessed ppr results
-	
+		
 	public Long getPrepSize();
 	// get the size of the preprocessing directory in bytes
 	
