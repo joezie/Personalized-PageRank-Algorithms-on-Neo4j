@@ -32,7 +32,7 @@ import org.neo4j.logging.BufferingLog;
 import org.neo4j.logging.Log;
 
 
-public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interface, Preprocessing_Interface, Topk_Util_Interface {
+public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interface, Preprocessing_Interface, Topk_Util_Interface { // Calling PPR function provided by Neo4j Graphalgo package
 	private GraphDatabaseService graphDb;
 	private String dir_db;
 	private Graph adjM; // adjacency matrix of the graph
@@ -98,61 +98,6 @@ public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 		return true;
 	}
 	
-	/*
-	public void computePPR(Long nodeId_start) { // call PageRankProc.pageRankStream() and store results in ppr
-		Node node_start = null;
-		try (Transaction tx = graphDb.beginTx()) {
-			node_start = graphDb.getNodeById(nodeId_start);
-			tx.success();
-		}
-		if (node_start == null) {
-			System.out.println("Neo4j Method: get source node (Node Id: " + nodeId_start + ") failed!");
-			return;
-		}
-		sourceNodes.add(node_start);
-		Map<String, Object> config = new HashMap<>();
-		config.put(PageRankProc.CONFIG_DAMPING, alpha);
-		config.put("sourceNodes", sourceNodes);
-		
-		PageRankProc neo_t = new PageRankProc();
-		neo_t.api = (GraphDatabaseAPI) graphDb;
-		neo_t.log = new BufferingLog();
-		Stream<PageRankScore> neo_pprs = neo_t.pageRankStream(label_type, rel_type, config);
-		neo_pprs.forEach(
-        		prs -> {
-        			ppr.put(prs.nodeId, prs.score);
-        			return;
-        		});
-	}
-	
-	public void computePPR(Vector<Long> nodeIds_start) { // overload computePPR: more than one src nodes
-		try (Transaction tx = graphDb.beginTx()) {
-			for (Long nodeId_start : nodeIds_start) {
-				Node node_start = graphDb.getNodeById(nodeId_start);
-				if (node_start == null) {
-					System.out.println("Neo4j Method: get source node (Node Id: " + nodeId_start + ") failed!");
-					return;
-				}
-				sourceNodes.add(node_start);
-			}
-			tx.success();
-		}
-		Map<String, Object> config = new HashMap<>();
-		config.put(PageRankProc.CONFIG_DAMPING, alpha);
-		config.put("sourceNodes", sourceNodes);
-
-		PageRankProc neo_t = new PageRankProc();
-		neo_t.api = (GraphDatabaseAPI) graphDb;
-		neo_t.log = new BufferingLog();
-		Stream<PageRankScore> neo_pprs = neo_t.pageRankStream(label_type, rel_type, config);
-		neo_pprs.forEach(
-        		prs -> {
-        			ppr.put(prs.nodeId, prs.score);
-        			return;
-        		});
-	}
-	*/
-	
 	@Override
 	public void printWholeGraphResult() {
 		if (ppr.isEmpty())
@@ -180,7 +125,6 @@ public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 	@Override
 	public void preprocessing(Double dummy, Object iterations) {
 		// customize preprocessing_dirName
-		//preprocessing_dirName += ("/" + threshold + "_" + iterations);
 		preprocessing_dirName += ("/" + iterations);
 		
 		System.out.println("\nNeo4j-Method preprocessing started...");
@@ -226,15 +170,13 @@ public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 				for (int i = 0; i < node_amount; i++) {
 					Long nodeId_i = adjM.toOriginalNodeId(i);
 					Double ppr_i = rankResult.score(i) / ppr_sum; // normalization
-					//if (ppr_i >= threshold) {
-						try {
-		            		fw.write(nodeId_i.toString() + '\t' + ppr_i.toString() + '\n');
-		            	}
-		            	catch (IOException e) {
-		            		System.out.println("Write to file " + fileName_start + " failed!");
-		            		e.printStackTrace();
-		            	}
-					//}
+					try {
+	            		fw.write(nodeId_i.toString() + '\t' + ppr_i.toString() + '\n');
+	            	}
+	            	catch (IOException e) {
+	            		System.out.println("Write to file " + fileName_start + " failed!");
+	            		e.printStackTrace();
+	            	}
 				}
 				
 				fw.close();
@@ -253,6 +195,7 @@ public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 	@Override
 	public void readPreprocessedPPR(Long nodeId_start) {
 		// read pprs from file corresponding to src node and store in ppr
+		
 		ppr.clear();
 		String fileName_start = preprocessing_dirName + "/" + nodeId_start.toString() + ".txt";
 		try {
@@ -273,7 +216,9 @@ public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 	}
 	
 	@Override
-	public Vector<Long> getTopKNodeIds(int k) { // return the reference of topk_nodeIds sorted by ppr; might include more than k nodes
+	public Vector<Long> getTopKNodeIds(int k) { 
+		// return the reference of topk_nodeIds sorted by ppr; might include more than k nodes
+		
 		if (!topk_nodeIds.isEmpty()) // topk_node_ids is already set, then no need to compute again 
 			return topk_nodeIds;		
 
@@ -293,34 +238,11 @@ public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 	}
 	
 	@Override
-	public void computeTopKPPR(Long nodeId_start, int k, Object iterations) { // store the top-k results in topk_res; might include more than k nodes
-		//if (!topk_res.isEmpty()) // topk_res is already set, then no need to compute again 
-		//	return true;
+	public void computeTopKPPR(Long nodeId_start, int k, Object iterations) { 
+		// store the top-k results in topk_res; might include more than k nodes
 		
-		// 1. perform Neo4j Method Whole-Graph SSPPR algo
 		computeWholeGraphPPR(nodeId_start, iterations);
-		
-		/*
-		// 2. build ppr map
-		if (ppr.isEmpty())
-			buildPPRMap();
-		
-		// 3. retrieve top-k results and store in topk_res 
-		Double kth_reserve = kth_ppr(ppr.values().toArray(), k); // find the kth ppr
-		if (kth_reserve == null) { // there might be less than k results, so we copy all of them to topk_res
-			//System.out.println("Power Method: there might be less than k ppr results");
-			topk_res = new HashMap<>(ppr);
-			return;
-		}
-			
-		for (Map.Entry<Long, Double> reserve_t : ppr.entrySet()) {
-			// find the pprs not smaller than the kth ppr, so it's possible that
-			// the size of topk_res is greater than k
-			if (reserve_t.getValue() >= kth_reserve)
-				topk_res.put(reserve_t.getKey(), reserve_t.getValue());
-		}
-		return;
-		*/
+		// perform Neo4j Method Whole-Graph SSPPR algo
 	}
 	
 	@Override
@@ -353,7 +275,6 @@ public class Neo4j_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 		// 2. retrieve top-k results and store in topk_res 
 		Double kth_reserve = kth_ppr(ppr.values().toArray(), k); // find the kth ppr
 		if (kth_reserve == null) { // there might be less than k results, so we copy all of them to topk_res
-			//System.out.println("Power Method: there might be less than k ppr results");
 			topk_res = new HashMap<>(ppr);
 			return;
 		}
