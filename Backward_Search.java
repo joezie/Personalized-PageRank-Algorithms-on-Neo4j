@@ -13,21 +13,14 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.internal.kernel.api.security.AccessMode.Static;
 
-public class Backward_Search { // Backward Search Preprocessing algorithm (BASE) based on backward searches
+public class Backward_Search { // All-Pair-Backward-Search algorithm based on backward searches
 	private GraphDatabaseService graphDb;
 	Graph adjM; // adjacency matrix of the graph
 	private HashMap<Long, Double> residue; // propagated value, i.e r
 	private HashMap<Long, Double> reserve; // stored value, i.e pi
-	//Queue<Node> Q_next; // nodes that might still propagate forward in the next call 
-						// meet the requirement of r(s,v) / |N_out(v)| > min_rmax
-	//HashMap<Node, Integer> in_degree_map; // record the in-going degree for each node
-	//HashMap<Node, Iterable<Relationship>> rel_iter_map; // record the in-going relationship iterable for each node
-	
-	// tag::configuration parameters[]
 	private int node_amount; // the total number of nodes in the graph
 	private Double alpha; // the probability stopped at each node during a random walk
 	private Double rmax; // the residue(r) threshold for local update
-	// end::configuration parameters[]
 	
 	public Backward_Search(Double alpha, Double rmax, int node_amount, GraphDatabaseService graphDb,
 			Graph adjM) {
@@ -35,15 +28,9 @@ public class Backward_Search { // Backward Search Preprocessing algorithm (BASE)
 		this.adjM = adjM;
 		residue = new HashMap<>();
 		reserve = new HashMap<>();
-		//Q_next = new ConcurrentLinkedQueue<>();
-		//this.in_degree_map = in_degree_map;
-		//this.rel_iter_map = rel_iter_map;
-		
-		// tag::configuration parameters assignment[]
 		this.node_amount = node_amount;
 		this.alpha = alpha;
 		this.rmax = rmax;
-		// end::configuration parameters assignment[]
 	}
 	
 	private static long startTime = 0, endTime = 0, duration = 0;
@@ -53,8 +40,6 @@ public class Backward_Search { // Backward Search Preprocessing algorithm (BASE)
 		residue.clear();
 		reserve.clear();
 		
-		// tag::new version[]
-		//int in_neighbor_target = in_degree_map.get(target);
 		int nodeIdM_target = adjM.toMappedNodeId(nodeId_target); // target node id in adjacency matrix
 		int in_degree_target = adjM.degree(nodeIdM_target, Direction.INCOMING);
 		
@@ -62,7 +47,6 @@ public class Backward_Search { // Backward Search Preprocessing algorithm (BASE)
 			reserve.put(nodeId_target, 1.0);
 			return;
 		}
-		// end::new version[]
 		
 		HashSet<Long> nodesInQueue = new HashSet<>(); // record nodes in Q
 		Queue<Long> Q = new ConcurrentLinkedQueue<>(); // nodes that can still propagate backward
@@ -83,52 +67,12 @@ public class Backward_Search { // Backward Search Preprocessing algorithm (BASE)
 			reserve.put(nodeId_cur, old_reserve_cur + residue_cur * alpha);
 			// pi(v, t) = pi(v, t) + alpha * r(v, t)
 							
-	        //int in_neighbor_cur = in_degree_map.get(cur_node);
 			int nodeIdM_cur = adjM.toMappedNodeId(nodeId_cur); // current node id in adjacency matrix
 			int in_degree_cur = adjM.degree(nodeIdM_cur, Direction.INCOMING);
-						
-			/*
-			if (in_degree_cur == 0) {
-				// no in neighbor, then consider target node as its only neighbor
-				// and propagate (1 - alpha) * r(v, t) to target node
-				Double new_residue_target = residue.get(nodeId_target) + residue_cur * (1.0 - alpha);
-				residue.put(nodeId_target, new_residue_target);
-				
-				if (new_residue_target > rmax && !nodesInQueue.contains(nodeId_target)) {
-					// check whether the updated target node should be added into Q or not
-					// condition: meet the requirement of Q and not in Q currently
-					Q.offer(nodeId_target);
-					nodesInQueue.add(nodeId_target);
-				}
-				continue;
-			}
-			*/
 			
-			Double avg_push_residue = ((1.0 - alpha) * residue_cur);// Note: not divided by in_degree(next_node) yet
-			
-			/*
-			Iterator<Relationship> iter = rel_iter_map.get(cur_node).iterator();
-			
-			while (iter.hasNext()) {
-				Node next_node = iter.next().getOtherNode(cur_node);
-		        
-				Double old_residue_next = residue.get(next_node);
-				if (old_residue_next == null)
-					old_residue_next = 0.0;
-				Double new_residue_next = old_residue_next + avg_push_residue;
-				residue.put(next_node, new_residue_next);
-				//r(s,u) = r(s,u) + (1 - alpha) * r(s,v) / |N_out(v)|
-								
-				int in_neighbor_next = in_degree_map.get(next_node);
-				
-				if (new_residue_next / (double)in_neighbor_next >= rmax && !nodesInQueue.contains(next_node)) {
-					// check whether the updated next node should be added into Q or not
-					// condition: meet the requirement of Q and not in Q currently
-					Q.offer(next_node);
-					nodesInQueue.add(next_node);
-				}
-			}
-			*/
+			Double avg_push_residue = ((1.0 - alpha) * residue_cur);
+			// Note: not divided by in_degree(next_node) yet
+		
 			
 			adjM.forEachRelationship(nodeIdM_cur, Direction.INCOMING, 
 					(nodeIdM1, nodeIdM2, tmp) -> {
@@ -142,8 +86,6 @@ public class Backward_Search { // Backward Search Preprocessing algorithm (BASE)
 						residue.put(nodeId2, new_residue_next);
 						//r(u, t) = r(u, t) + (1 - alpha) * r(v, t) / |N_out(u)|
 										
-						//int out_neighbor_next = out_degree_map.get(next_node);
-						
 						if (new_residue_next > rmax && !nodesInQueue.contains(nodeId2)) {
 							// check whether the updated next node should be added into Q or not
 							// condition: meet the requirement of Q and not in Q currently
