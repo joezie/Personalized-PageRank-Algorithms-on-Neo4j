@@ -26,24 +26,14 @@ public class Fora_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 	Graph adjM; // adjacency matrix of the graph	
 	private HashMap<Long, Double> residue; // propagated value, i.e r
 	private HashMap<Long, Double> reserve; // stored value, i.e pi
-	//HashMap<Node, Integer> out_degree_map; // record the outgoing degree for each node
-	//HashMap<Node, Iterable<Relationship>> rel_iter_map; // record the outgoing relationship iterable for each node
-	
-	// tag::configuration parameters[]
 	private int node_amount; // the total number of nodes in the graph
 	private int rel_amount; // the total number of edges in the graph
 	private Double alpha; // the probability stopped at each node during a random walk
-	//private Double rmax; // the residue(r) threshold for local update
 	private Double rsum; // the sum of all nodes' residues(r) during a local update process from s
-	//private Double epsilon; // error bound
 	private Double pfail; // failure probability
 	private Double delta; // the reserve(pi) threshold
-	//private Double omega; // the total number of random walks
 	private static final Double avg_rand_walk_time = 400.0; // 400(ns)
-	// end::configuration parameters[]
 	private String preprocessing_dirName;
-	
-	
 	
 	public Fora_Whole_Graph(Double alpha, Double rsum, Double pfail, Double delta, int node_amount, int rel_amount,
 			GraphDatabaseService graphDb, Graph adjM, String node_property, String dir_db) {
@@ -53,52 +43,17 @@ public class Fora_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 		this.adjM = adjM;
 		residue = new HashMap<>();
 		reserve = new HashMap<>();
-		//this.out_degree_map = out_degree_map;
-		//this.rel_iter_map = rel_iter_map;
-		
-		// tag::configuration parameters assignment[]
 		this.node_amount = node_amount;
 		this.rel_amount = rel_amount;
 		this.alpha = alpha;
-		//this.rmax = rmax;
 		this.rsum = rsum;
-		//this.epsilon = epsilon;
 		this.pfail = pfail;
 		this.delta = delta;
-		//omega = (epsilon + 2.0) * Math.log(2.0 / pfail) / epsilon / epsilon / delta;
-		// Note: omega hasn't times rsum yet (omega needs to times rsum after forward push)
-		// end::configuration parameters assignment[]
 		preprocessing_dirName = "FORA_ppr_results/" + dir_db;
 	}
 	
-	/*
-	@Override
-	public void printResult() {
-		Iterator<Node> iter = null;
-		try ( Transaction tx = graphDb.beginTx() ) {
-			iter = graphDb.getAllNodes().iterator();
-			tx.success();
-		}
-		System.out.println("Fora-Whole-Graph PPR:");
-		while (iter.hasNext()) {
-			Node node = iter.next();
-			System.out.println("@" + getNodeName(node, graphDb) + '\t' + reserve.get(node));
-		}
-	}
-	*/
-	
 	@Override
 	public void printWholeGraphResult() {
-		/*
-		System.out.println("Fora-Whole-Graph PPR:");
-		adjM.forEachNode(nodeIdM -> {
-			Long nodeId = adjM.toOriginalNodeId(nodeIdM);
-			System.out.println("@" + getNodeName(nodeId, graphDb) + '\t' + reserve.get(nodeId));
-			return true;
-		});
-		*/
-		
-
 		List<Map.Entry<Long, Double>> reserve_list = new ArrayList<Map.Entry<Long, Double>>(reserve.entrySet());
 		reserve_list.sort( new Comparator<Map.Entry<Long, Double>>() { // sort in descending order
 			public int compare(Map.Entry<Long, Double> k1, Map.Entry<Long, Double> k2) { 
@@ -110,7 +65,6 @@ public class Fora_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 		System.out.println("Fora-Whole-Graph PPR:");
 		for (Map.Entry<Long, Double> reserve_t : reserve_list) 
 			System.out.println("@" + getNodeName(reserve_t.getKey(), graphDb) + '\t' + reserve_t.getValue());
-	
 	}
 	
 	@Override
@@ -119,7 +73,7 @@ public class Fora_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 	}
 	
 	private Double computeEstRandWalkTime(Double rsum_local, Double omega_local) { 
-		// compute estimated time (ns) for omega times random walks 
+		// compute estimated time (ns) for omega times random walks
 		
 		return avg_rand_walk_time * rsum_local * omega_local;
 	}
@@ -135,8 +89,6 @@ public class Fora_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 		long startTime = 0, endTime = 0, duration_fwdpush = 0, duration_random = 0;
         
 		// part 1: perform forward push
-
-		//System.out.println("\nFORA-WHOLE-GRAPH: performing forward push...");
 		Forward_Push fp_section = null;
 		while (duration_fwdpush < computeEstRandWalkTime(rsum_local, omega_local)) {
 			fp_section = new Forward_Push(alpha, 1.0, node_amount, graphDb, adjM, node_property, dir_db);
@@ -149,14 +101,14 @@ public class Fora_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 			rsum_local = fp_section.getUpdatedRsum() * (1 - alpha);
 			rmax_local /= 2.0;
 		}
+
+		// performance info:
 		//System.out.println("\nFinish forward push in " + duration_fwdpush / 1000000 + "(ms)");
 		
 		reserve = fp_section.getReserveCopy();
 		residue = fp_section.getResidueCopy();
 		
 		// part 2: perform random walks
-		//System.out.println("\nFORA-WHOLE-GRAPH: performing random walks...");
-		
 		Monte_Carlo mc_section = new Monte_Carlo(alpha, node_amount, graphDb, pfail, delta, 
 				adjM, node_property, dir_db);
 		
@@ -164,49 +116,38 @@ public class Fora_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 		long num_random_walk = (long)(omega_local * rsum_local);
 		
 		startTime = System.nanoTime();
-		/**/
-		//try ( Transaction tx = graphDb.beginTx() ) {
 		for (Map.Entry<Long, Double> entry : residue.entrySet()) { // perform random walk from each v_i for omega_i times
 			Long nodeId_cur = entry.getKey();
 			Double residue_cur = entry.getValue();
-
-			// tag::new version[]
 			Double reserve_incr_cur = residue_cur * alpha; // transfer part of residue to reserve
 			residue_cur *= (1.0 - alpha); // update residue_cur
 			Double old_reserve_cur = reserve.get(nodeId_cur);
 			if (old_reserve_cur == null)
 				old_reserve_cur = 0.0;
 			reserve.put(nodeId_cur, old_reserve_cur + reserve_incr_cur);
-			// end::new version[]
 
 			long omega_i = (long)Math.ceil(residue_cur / rsum_local * (double)num_random_walk);
 			Double a_i = residue_cur / rsum_local * (double)num_random_walk / (double)omega_i;
 			Double reserve_incr = a_i / (double)num_random_walk * rsum_local;
 
 			for (long j = 0; j < omega_i; j++) {
-				//Node dest_node = mc_section.random_walk(cur_node);
-
-				// tag::new version[]
 				Long nodeId_dest = mc_section.random_walk_no_zero_hop(nodeId_cur);
-				// end::new version[]
-
 				Double old_reserve_dest = reserve.get(nodeId_dest);
 				if (old_reserve_dest == null)
 					old_reserve_dest = 0.0;
 				reserve.put(nodeId_dest, old_reserve_dest + reserve_incr);
 			}
 		}
-		//	tx.success();
-		//}
 		endTime = System.nanoTime();
 		duration_random += (endTime - startTime);
+
+		// performance info:
 		//System.out.println("\nFinish random walk in " + duration_random / 1000000 + "(ms)");
 	}
 	
 	@Override
 	public void preprocessing(Double dummy, Object epsilon) {
 		// customize preprocessing_dirName
-		//preprocessing_dirName += ("/" + threshold + "_" + epsilon);
 		preprocessing_dirName += ("/" + epsilon);
 		
 		System.out.println("\nFORA preprocessing starts...");
