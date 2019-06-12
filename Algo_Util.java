@@ -11,7 +11,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
-public class Algo_Util { // useful functions used by each algorithm
+public class Algo_Util { // functions used by each algorithm
 	protected String node_property;
 	
 	public Algo_Util(String node_property) {
