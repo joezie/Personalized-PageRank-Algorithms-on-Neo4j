@@ -32,21 +32,11 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 	private String dir_db;
 	Graph adjM; // adjacency matrix of the graph	
 	private HashMap<Long, Double> ppr; // (nodeId in graphDb, ppr value)
-	//HashMap<Node, Integer> out_degree_map; // record the outgoing degree for each node
-	//HashMap<Node, Iterable<Relationship>> rel_iter_map; // record the outgoing relationship iterable for each node
-		
-	// tag::configuration parameters[]
 	private int node_amount; // the total number of nodes in the graph
 	private Double alpha; // the probability stopped at each node during a random walk
-	//private Double omega; // the total number of random walks
-	//private Double epsilon; // error bound
 	private Double delta; // the reserve(pi) threshold
 	private Double pfail; // failure probability
-	// end::configuration parameters[]
-	
-	// tag::timing parameters[]
 	public long startTime, endTime, duration;
-	// end::timing parameters[]
 	private String preprocessing_dirName;
 	private Vector<Long> topk_nodeIds; // top-k node ids sorted by ppr
 	private HashMap<Long, Double> topk_res; // top-k ppr result
@@ -57,21 +47,13 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 		this.graphDb = graphDb;
 		this.dir_db = dir_db;
 		this.adjM = adjM;
-		//this.out_degree_map = out_degree_map;
-		//this.rel_iter_map = rel_iter_map;
 		ppr = new HashMap<>();
 		topk_nodeIds = new Vector<>();
 		topk_res = new HashMap<>();
-		
-		// tag::configuration parameters assignment[]
 		this.node_amount = node_amount;
 		this.alpha = alpha;
-		//this.epsilon = epsilon;
 		this.pfail = pfail;
-		this.delta = delta;
-		//omega = 3 * Math.log(2 / pfail) / epsilon / epsilon / delta;
-		// end::configuration parameters assignment[]
-		
+		this.delta = delta;		
 		preprocessing_dirName = "MC_ppr_results/" + dir_db;
 	}
 	
@@ -82,44 +64,24 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 		 * probability of 1 - alpha.
 		 */
 			
-		/*
-		int out_degree_start = 0;
-		try ( Transaction tx = graphDb.beginTx() ) {
-			out_degree_start = start.getDegree(Direction.OUTGOING);
-			tx.success();
-		}
-		*/
-		
 		int nodeIdM_start = adjM.toMappedNodeId(nodeId_start); // start node id in adjacency matrix
-		//int out_degree_start = out_degree_map.get(start);
 		int out_degree_start = adjM.degree(nodeIdM_start, Direction.OUTGOING);
 		
 		if (out_degree_start == 0)
 			// if there's no outgoing edge from this node, then return the start node
 			return nodeId_start;
 		
-		//try ( Transaction tx = graphDb.beginTx() ) {
 		int nodeIdM_cur = nodeIdM_start; // current node id in adjacency matrix
 		while (true) {
 			if (ThreadLocalRandom.current().nextDouble(1.0) < alpha)
 				// Stop at current node with a probability of alpha
-				//return cur_node;
 				break;
 						
-			//int out_degree_cur = out_degree_map.get(cur_node);
 			int out_degree_cur = adjM.degree(nodeIdM_cur, Direction.OUTGOING);
 			if (out_degree_cur > 0) {
 				// At least one outgoing neighboring node exists, then randomly
 				// pick an outgoing neighboring node as the next node
 				int picked_rel_num = ThreadLocalRandom.current().nextInt(out_degree_cur);
-				//Iterator<Relationship> iter = rel_iter_map.get(cur_node).iterator();
-				
-				//while (picked_rel_num > 0) {
-				//	iter.next();
-				//	picked_rel_num--;
-				//}
-				//Relationship picked_rel = iter.next();
-				//cur_node = picked_rel.getOtherNode(cur_node);
 				nodeIdM_cur = adjM.getTarget(nodeIdM_cur, picked_rel_num, Direction.OUTGOING); // move to the node at outgoing[nodeIdM_cur][picked_rel_num]
 			}
 			else {
@@ -131,56 +93,34 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 		return nodeId_cur;
 	}
 	
-	// tag::new version[]
 	public Long random_walk_no_zero_hop(Long nodeId_start) { 
 		/* Return the final node where the random walk from start node stops at.
 		 * During the random walk, it would stop at a node with a probability of
 		 * alpha, and move to a randomly picked outgoing neighboring node with a
 		 * probability of 1 - alpha.
 		 */	
-		//int out_degree_start = out_degree_map.get(start);
+
 		int nodeIdM_start = adjM.toMappedNodeId(nodeId_start); // start node id in adjacency matrix
 		int out_degree_start = adjM.degree(nodeIdM_start, Direction.OUTGOING);
 
-		
 		if (out_degree_start == 0)
 			// if there's no outgoing edge from this node, then return the start node
 			return nodeId_start;
 		
-				
-		// tag::new version[]
-		
 		 // move a step from start to one of its neighbor
-		int picked_rel_num_start = ThreadLocalRandom.current().nextInt(out_degree_start);
-		//Iterator<Relationship> iter_start = rel_iter_map.get(start).iterator();
-		//while (picked_rel_num_start > 0) {
-		//	iter_start.next();
-		//	picked_rel_num_start--;
-		//}
-		//Relationship picked_rel_start = iter_start.next();
-		//cur_node = picked_rel_start.getOtherNode(cur_node);				
+		int picked_rel_num_start = ThreadLocalRandom.current().nextInt(out_degree_start);			
 		int nodeIdM_cur = adjM.getTarget(nodeIdM_start, picked_rel_num_start, Direction.OUTGOING); // current node id in adjacency matrix
 		
 		while (true) {
 			if (ThreadLocalRandom.current().nextDouble(1.0) < alpha)
 				// Stop at current node with a probability of alpha
-				//return cur_node;
 				break;
 						
-			//int out_degree_cur = out_degree_map.get(cur_node);
 			int out_degree_cur = adjM.degree(nodeIdM_cur, Direction.OUTGOING);
 			if (out_degree_cur > 0) {
 				// At least one outgoing neighboring node exists, then randomly
 				// pick an outgoing neighboring node as the next node
 				int picked_rel_num = ThreadLocalRandom.current().nextInt(out_degree_cur);
-				//Iterator<Relationship> iter = rel_iter_map.get(cur_node).iterator();
-				
-				//while (picked_rel_num > 0) {
-				//	iter.next();
-				//	picked_rel_num--;
-				//}
-				//Relationship picked_rel = iter.next();
-				//cur_node = picked_rel.getOtherNode(cur_node);
 				nodeIdM_cur = adjM.getTarget(nodeIdM_cur, picked_rel_num, Direction.OUTGOING); // move to the node at outgoing[nodeIdM_cur][picked_rel_num]
 			}
 			else {
@@ -191,7 +131,6 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 		Long nodeId_cur = adjM.toOriginalNodeId(nodeIdM_cur); // current node id in graphDb 
 		return nodeId_cur;
 	}
-	// end::new version[]
 	
 	@Override
 	public void computeWholeGraphPPR(Long nodeId_start, Object epsilon) {
@@ -199,7 +138,6 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 		 * ppr value as the ratio of random walks stopping at it. 
 		 */
 		
-		//try ( Transaction tx = graphDb.beginTx() ) {
 		ppr.clear();
 		topk_nodeIds.clear();
 		topk_res.clear();
@@ -207,19 +145,8 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 		Double omega = 3 * Math.log(2 / pfail) / (Double)epsilon / (Double)epsilon / delta;
 		
 		HashMap<Long, Integer> stop_count = new HashMap<>();
-			//Iterator<Node> iter = graphDb.getAllNodes().iterator();
-			//while (iter.hasNext()) 
-			//	stop_count.put(iter.next(), 0);
-		/*
-		adjM.forEachNode(nodeIdM -> {
-			Long nodeId = adjM.toOriginalNodeId(nodeIdM);
-			stop_count.put(nodeId, 0);
-			return true;
-		});
-		*/
 		
 		for (long i = 1; i <= omega; i++) {
-			//Long nodeId_final = random_walk_no_zero_hop(nodeId_start);
 			Long nodeId_final = random_walk(nodeId_start);
 			Integer old_stop_count = stop_count.get(nodeId_final);
 			old_stop_count = (old_stop_count == null) ? 0 : old_stop_count;
@@ -228,47 +155,10 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 		
 		for (Map.Entry<Long, Integer> stop_count_t : stop_count.entrySet()) 
 			ppr.put(stop_count_t.getKey(), ((double)(stop_count_t.getValue())) / omega);
-		
-        
-        
-			//iter = graphDb.getAllNodes().iterator(); // rewind iter
-			//while (iter.hasNext()) {
-			//	Node node = iter.next();
-			//	ppr.put(node, (double)stop_count.get(node) / omega);
-			//}
-		/*
-		adjM.forEachNode(nodeIdM -> {
-			Long nodeId = adjM.toOriginalNodeId(nodeIdM);
-			ppr.put(nodeId, (double)stop_count.get(nodeId) / omega);
-			return true;
-		});
-		*/
-			//tx.success();
-		//}
 	}
 	
 	@Override
 	public void printWholeGraphResult() {
-		/*
-		//Iterator<Node> iter = null;
-		//try ( Transaction tx = graphDb.beginTx() ) {
-		//	iter = graphDb.getAllNodes().iterator();
-		//	tx.success();
-		//}
-		System.out.println("Monte-Carlo PPR:");
-		//while (iter.hasNext()) {
-		//	Node node = iter.next();
-		//	System.out.println("@" + getNodeName(node, graphDb) + '\t' + ppr.get(node));
-		//}
-		adjM.forEachNode(nodeIdM -> {
-			Long nodeId = adjM.toOriginalNodeId(nodeIdM);
-			System.out.println("@" + getNodeName(nodeId, graphDb) + '\t' + ppr.get(nodeId));
-			return true;
-		});
-		*/
-		
-		
-		
 		List<Map.Entry<Long, Double>> reserve_list = new ArrayList<Map.Entry<Long, Double>>(ppr.entrySet());
 		reserve_list.sort( new Comparator<Map.Entry<Long, Double>>() { // sort in descending order
 			public int compare(Map.Entry<Long, Double> k1, Map.Entry<Long, Double> k2) { 
@@ -290,7 +180,6 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 	@Override
 	public void preprocessing(Double dummy, Object epsilon) {
 		// customize preprocessing_dirName
-		//preprocessing_dirName += ("/" + threshold + "_" + epsilon);
 		preprocessing_dirName += ("/" + epsilon);
 		
 		System.out.println("\nMonte-Carlo preprocessing started...");
@@ -327,8 +216,7 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 				for (Map.Entry< Long, Double > entry_t : ppr.entrySet()) {
 					Long nodeId_i = entry_t.getKey();
 					Double ppr_i = entry_t.getValue();
-					//if (ppr_i >= threshold)
-						fw.write(nodeId_i.toString() + '\t' + ppr_i.toString() + '\n');
+					fw.write(nodeId_i.toString() + '\t' + ppr_i.toString() + '\n');
 				}
 				fw.close();
 			}
@@ -387,29 +275,8 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 	
 	@Override
 	public void computeTopKPPR(Long nodeId_start, int k, Object epsilon) {
-		//if (!topk_res.isEmpty()) // topk_res is already set, then no need to compute again 
-		//	return true;
-		
-		// 1. perform Monte-Carlo Whole-Graph SSPPR algo
 		computeWholeGraphPPR(nodeId_start, epsilon);
-		
-		/*
-		// 2. retrieve top-k results and store in topk_res 
-		Double kth_reserve = kth_ppr(ppr.values().toArray(), k); // find the kth ppr
-		if (kth_reserve == null) { // there might be less than k results, so we copy all of them to topk_res
-			//System.out.println("Power Method: there might be less than k ppr results");
-			topk_res = new HashMap<>(ppr);
-			return;
-		}
-			
-		for (Map.Entry<Long, Double> reserve_t : ppr.entrySet()) {
-			// find the pprs not smaller than the kth ppr, so it's possible that
-			// the size of topk_res is greater than k
-			if (reserve_t.getValue() >= kth_reserve)
-				topk_res.put(reserve_t.getKey(), reserve_t.getValue());
-		}
-		return;
-		*/
+		// perform Monte-Carlo Whole-Graph SSPPR algo
 	}
 	
 	@Override
@@ -439,7 +306,6 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 		
 		Double kth_reserve = kth_ppr(ppr.values().toArray(), k); // find the kth ppr
 		if (kth_reserve == null) { // there might be less than k results, so we copy all of them to topk_res
-			//System.out.println("Power Method: there might be less than k ppr results");
 			topk_res = new HashMap<>(ppr);
 			return;
 		}
@@ -467,48 +333,4 @@ public class Monte_Carlo extends Algo_Util implements Whole_Graph_Util_Interface
 			e.printStackTrace();
 		}
 	}
-	
-	/*
-	@Override
-	public Object getPreprocessedPPR() {
-		return ppr;
-	}
-	*/
-	
-	/*
-	void test() {
-		try ( Transaction tx = graphDb.beginTx() )
-        {
-			int outdeg = nodes[2].getDegree(Direction.OUTGOING);
-			Iterator<Relationship> iter = nodes[2].getRelationships(Direction.OUTGOING).iterator();
-			System.out.println("Out degree:" + outdeg);
-			//for (Relationship rel : rels)
-			while (iter.hasNext()) {
-				Relationship rel = iter.next();
-				System.out.println("@" + rel.getOtherNode(nodes[2]).getProperty("Name"));
-			}
-            tx.success();
-        }
-	}
-	*/
-	/*
-	private String getNodeName(Node node) {
-		String nodeName = "";
-		try ( Transaction tx = graphDb.beginTx() ) {
-			nodeName = node.getProperties("Name").toString();		
-			tx.success();		
-		}
-		return nodeName;
-	}
-	*/
-	/*
-	public static void main( final String[] args ) throws IOException {
-		Monte_Carlo mc_t = new Monte_Carlo(0.15, 0.01);
-		mc_t.createDb();
-		mc_t.construct_graph();
-		mc_t.monte_carlo(mc_t.nodes[0]);
-		mc_t.printPPR();
-		mc_t.shutDown();
-	}
-	*/
 }
