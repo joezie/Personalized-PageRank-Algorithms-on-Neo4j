@@ -29,20 +29,15 @@ import org.neo4j.graphdb.GraphDatabaseService;
 
 import io.netty.handler.codec.http2.StreamByteDistributor.Writer;
 
-public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Interface, Preprocessing_Interface, Topk_Util_Interface { // BASE for All-Pair-Backward-Search
+public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Interface, Preprocessing_Interface, Topk_Util_Interface { // All-Pair-Backward-Search algorithm
 	private GraphDatabaseService graphDb;
 	private String dir_db;
-	Graph adjM; // adjacency matrix of the graph
-	//private HashMap< Long, ArrayList< SimpleEntry< Long, Double > > > ppr_all_pairs; // (v, (t, pi(v, t)))
-	//private ArrayList< SimpleEntry< Long, Double > > ppr_src; // ppr of all nodes in respect to src node
+	Graph adjM; // adjacency matrix of the graph 
 	private HashMap< Long, LinkedHashMap< Long, Double > > ppr_all_pairs; // (v, (t, pi(v, t)))
 	private LinkedHashMap< Long, Double > ppr_src; // ppr of all nodes in respect to src node (LinkedHashMap would keep entries' insertion order)
 	private int node_amount; // the total number of nodes in the graph
 	private Double alpha; // the probability stopped at each node during a random walk
-	//private Double rmax; // the residue(r) threshold for local update
 	private String preprocessing_dirName;
-	//private Vector<Long> topk_nodeIds; // top-k node ids sorted by ppr
-	//private HashMap<Long, Double> topk_res; // top-k ppr result
 	
 	public Base_Whole_Graph(Double alpha, int node_amount, GraphDatabaseService graphDb,
 			Graph adjM, String node_property, String dir_db) {
@@ -51,16 +46,9 @@ public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 		this.dir_db = dir_db;
 		this.adjM = adjM;
 		ppr_all_pairs = new HashMap<>();
-		//ppr_src = new ArrayList<>();
 		ppr_src = new LinkedHashMap<>();
-		//topk_nodeIds = new Vector<>();
-		//topk_res = new HashMap<>();
-		
-		// tag::configuration parameters assignment[]
 		this.node_amount = node_amount;
 		this.alpha = alpha;
-		//this.rmax = rmax;
-		// end::configuration parameters assignment[]
 		preprocessing_dirName = "BASE_ppr_results/" + dir_db;
 	}
 	
@@ -74,10 +62,6 @@ public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 		// customize preprocessing_dirName
 		preprocessing_dirName += ("/" + threshold + "_" + k);
 		
-
-		//long startTime = 0, endTime = 0, duration = 0;
-		//startTime = System.nanoTime();
-
 		System.out.println("\nBASE preprocessing starts...");
 		Backward_Search bws_t = new Backward_Search(alpha, threshold, node_amount, graphDb, adjM);
 		HashMap<Integer, Integer> prog_pct_map = new HashMap<>(); // (nodeId, progress percentage)
@@ -104,10 +88,6 @@ public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 				System.out.println("Progress: " + prog_pct_map.get(nodeIdM) + "%");
 			return true;
 		});
-		//endTime = System.nanoTime();
-		//duration += (endTime - startTime);
-		//System.out.println("\nFinish BASE index building in " + duration / 1000000 + "(ms)");
-		//System.out.println("\nBackward Search in total used " + bws_t.getDuration() / 1000000 + "(ms)");
 
 		File dirPath = new File(preprocessing_dirName);
 		if (!dirPath.exists()) { // create directory if not exists
@@ -139,8 +119,6 @@ public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 				try {
 					FileWriter fw = new FileWriter(fileName_v, false);
 					for (Map.Entry< Long, Double > entry_t : ppr_to_targets.entrySet()) {
-						//Double norm_val = entry_t.getValue() / pi_sum;
-						//fw.write(entry_t.getKey().toString() + '\t' + norm_val.toString() + '\n');
 						fw.write(entry_t.getKey().toString() + '\t' + entry_t.getValue().toString() + '\n');
 					}
 					fw.close();
@@ -181,20 +159,12 @@ public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 				}
 			}
 		}
-		
-		//endTime = System.nanoTime();
-		//duration = (endTime - startTime);
-		//System.out.println("\nFinish BASE preprocessing in " + duration / 1000000 + "(ms)");
-
-		
 	}
 	
 	@Override
 	public void computeWholeGraphPPR(Long nodeId_start, Object dummy) { // read pprs from file corresponding to src node
 		ppr_all_pairs.clear();
 		ppr_src.clear();
-		//topk_nodeIds.clear();
-		//topk_res.clear();
 		String fileName_v = preprocessing_dirName + "/" + nodeId_start.toString() + ".txt";
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(new File(fileName_v)));
@@ -203,7 +173,6 @@ public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 				int space_idx = tmpStr.indexOf('\t');
 				Long nodeId_target = Long.parseLong(tmpStr.substring(0, space_idx));
 				Double ppr_target = Double.parseDouble(tmpStr.substring(space_idx + 1));
-				//ppr_src.add(new SimpleEntry<Long, Double>(nodeId_target, ppr_target));
 				ppr_src.put(nodeId_target, ppr_target);
 			}
 			br.close();
@@ -223,15 +192,6 @@ public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 
 	@Override
 	public HashMap<Long, Double> getWholeGraphPPR() { // return LinkedHashMap ppr_src
-		/*
-		HashMap<Long, Double> ppr_map = new HashMap<>();
-		for (Map.Entry<Long, Double> reserve_t : ppr_src) {
-			Long nodeId = reserve_t.getKey();
-			Double reserve = reserve_t.getValue();
-			ppr_map.put(nodeId, reserve);
-		}
-		return ppr_map;
-		*/
 		return ppr_src;
 	}
 
@@ -241,53 +201,15 @@ public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Inte
 		return;
 	}
 
-	/*
 	@Override
-	public Object getPreprocessedPPR() { // do not turn ppr_src into hashmap
-		return ppr_src;
-	}
-	*/
-	
-
-	@Override
-	public Vector<Long> getTopKNodeIds(int k) { // return the reference of topk_nodeIds sorted by ppr; might include more than k nodes
-		/*
-		if (!topk_nodeIds.isEmpty()) // topk_node_ids is already set, then no need to compute again 
-			return topk_nodeIds;		
-		
-		List<Map.Entry<Long, Double>> topk_res_list = new ArrayList<Map.Entry<Long, Double>>(topk_res.entrySet());
-		topk_res_list.sort( new Comparator<Map.Entry<Long, Double>>() { // sort in descending order
-			public int compare(Map.Entry<Long, Double> k1, Map.Entry<Long, Double> k2) { 
-				// overload with k2.val > k1.val
-				return k2.getValue().compareTo(k1.getValue());
-			}
-		} );
-		for (Map.Entry<Long, Double> topk_res_list_t : topk_res_list) // store node ids in topk_node_ids after sorting
-			topk_nodeIds.add(topk_res_list_t.getKey());
-		return topk_nodeIds;
-		*/
+	public Vector<Long> getTopKNodeIds(int k) { 
+		// return the reference of topk_nodeIds sorted by ppr; might include more than k nodes
 		return new Vector<>(ppr_src.keySet());
 	}
 	
 	@Override
-	public void computeTopKPPR(Long nodeId_start, int dummy1, Object dummy2) { // store the top-k results in topk_res
-		//if (!topk_res.isEmpty()) // topk_res is already set, then no need to compute again 
-		//	return true;
-		
-		// 1. perform BASE Whole-Graph SSPPR algo
-		computeWholeGraphPPR(nodeId_start, dummy2);
-		
-		/*
-		// 2. since ppr_src is already sorted, we only need to retrieve the top-k results directly
-		int ppr_count = 0;
-		for (Map.Entry<Long, Double> reserve_t : ppr_src.entrySet()) {
-			ppr_count++;
-			if (ppr_count <= k)
-				topk_res.put(reserve_t.getKey(), reserve_t.getValue());
-			else
-				break;
-		}
-		*/
+	public void computeTopKPPR(Long nodeId_start, int dummy1, Object dummy2) { // store the top-k results in topk_res	
+		computeWholeGraphPPR(nodeId_start, dummy2); // perform BASE Whole-Graph SSPPR algo
 		
 		return;
 	}
