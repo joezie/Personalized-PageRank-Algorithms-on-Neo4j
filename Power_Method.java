@@ -18,7 +18,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
-public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interface, Topk_Util_Interface { // ground truth ppr algorithm
+public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interface, Topk_Util_Interface { // computing ground truth of ppr
 	private GraphDatabaseService graphDb;
 	private String dir_db;
 	Graph adjM; // adjacency matrix of the graph
@@ -26,10 +26,7 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 	private HashMap<Long, Double> reserve; // stored value, i.e pi
 	private HashMap<Long, Double> topk_res; // top-k ppr result
 	private Vector<Long> topk_nodeIds; // top-k node ids sorted by ppr
-	
-	// tag::configuration parameters assignment[]
 	private Double alpha;
-	// end::configuration parameters assignment[]
 		
 	public Power_Method(GraphDatabaseService graphDb, Double alpha, Graph adjM, String node_property, String dir_db) {
 		super(node_property);
@@ -40,14 +37,13 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 		reserve = new HashMap<>();
 		topk_res = new HashMap<>();
 		topk_nodeIds = new Vector<>();
-		
-		// tag::configuration parameters assignment[]
 		this.alpha = alpha;
-		// end::configuration parameters assignment[]
 	}
 	
 	@Override
-	public void computeWholeGraphPPR(Long nodeId_start, Object dummy) { // compute exact ppr by performing forward push for 100 iterations
+	public void computeWholeGraphPPR(Long nodeId_start, Object dummy) { 
+		// compute exact ppr by performing forward push for 100 iterations
+		
 		// 1. clear
 		reserve.clear();
 		residue.clear();
@@ -58,16 +54,12 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 		residue.put(nodeId_start, 1.0); // r(s,s) = 1.0
 		int iterations = 100;
 		
-		//long startTime = 0, endTime = 0, duration = 0;
-		//startTime = System.nanoTime();
-		/**/
 		for (int num_iter = 0; num_iter < iterations; num_iter++) {
 			HashMap<Long, Double> pairs = new HashMap<>(residue);
 			residue.clear();
 			for (Map.Entry<Long, Double> entry : pairs.entrySet()) {
 				Long nodeId_cur = entry.getKey();
 				Double residue_cur = entry.getValue();
-				//int out_degree_cur = extracted_graph.get(cur_node).size();
 				int nodeIdM_cur = adjM.toMappedNodeId(nodeId_cur); // current node id in adjacency matrix
 				int out_degree_cur = adjM.degree(nodeIdM_cur, Direction.OUTGOING);
 				
@@ -88,18 +80,7 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 					}
 					else {
 						Double avg_push_residue = residue_remain / out_degree_cur;
-						
-						/*
-						for (Node next_node : extracted_graph.get(cur_node)) {
-							Double old_residue_next = residue.get(next_node);
-							if (old_residue_next == null)
-								old_residue_next = 0.0;
-							Double new_residue_next = old_residue_next + avg_push_residue;
-							residue.put(next_node, new_residue_next);
-							//r(s,u) = r(s,u) + (1 - alpha) * r(s,v) / |N_out(v)|
-						}
-						*/
-						
+												
 						adjM.forEachRelationship(nodeIdM_cur, Direction.OUTGOING, 
 								(nodeIdM1, nodeIdM2, tmp) -> {
 									Long nodeId1 = adjM.toOriginalNodeId(nodeIdM1);
@@ -117,9 +98,6 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 				}
 			}
 		}
-		//endTime = System.nanoTime();
-		//duration += (endTime - startTime);
-		//System.out.println("Finish power method in " + duration / 1000000 + "(ms)");
 	}
 	
 	@Override
@@ -143,7 +121,6 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 	}
 	
 	public HashMap<Long, Double> getTopK(int k) { // return the reference of topk_res; might include more than k nodes
-		//computeTopK(k, null);
 		return topk_res;
 	}
 	
@@ -151,7 +128,6 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 	public Vector<Long> getTopKNodeIds(int k) { // return the reference of topk_nodeIds sorted by ppr; might include more than k nodes
 		if (!topk_nodeIds.isEmpty()) // topk_node_ids is already set, then no need to compute again 
 			return topk_nodeIds;		
-		// computeTopK(k, null);
 		
 		List<Map.Entry<Long, Double>> topk_res_list = new ArrayList<Map.Entry<Long, Double>>(topk_res.entrySet());
 		topk_res_list.sort( new Comparator<Map.Entry<Long, Double>>() { // sort in descending order
@@ -166,9 +142,8 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 	}
 	
 	@Override
-	public void computeTopKPPR(Long nodeId_start, int k, Object dummy) { // store the top-k results in topk_res; might include more than k nodes
-		//if (!topk_res.isEmpty()) // topk_res is already set, then no need to compute again 
-		//	return true;
+	public void computeTopKPPR(Long nodeId_start, int k, Object dummy) { 
+		// store the top-k results in topk_res; might include more than k nodes
 		
 		// 1. perform Power Method Whole-Graph SSPPR algo
 		computeWholeGraphPPR(nodeId_start, dummy);
@@ -176,7 +151,6 @@ public class Power_Method extends Algo_Util implements Whole_Graph_Util_Interfac
 		// 2. retrieve top-k results and store in topk_res 
 		Double kth_reserve = kth_ppr(reserve.values().toArray(), k); // find the kth ppr
 		if (kth_reserve == null) { // there might be less than k results, so we copy all of them to topk_res
-			//System.out.println("Power Method: there might be less than k ppr results");
 			topk_res = new HashMap<>(reserve);
 			return;
 		}
