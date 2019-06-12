@@ -34,16 +34,10 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 	private HashMap<Long, Double> residue; // (node id in graphDb, propagated value, i.e r)
 	private HashMap<Long, Double> reserve; // (node id in graphDb, stored value, i.e pi)
 	Queue<Long> Q_next; // nodes that might still propagate forward in the next call 
-						// meet the requirement of r(s,v) / |N_out(v)| > min_rmax
-	//HashMap<Node, Integer> out_degree_map; // record the outgoing degree for each node
-	//HashMap<Node, Iterable<Relationship>> rel_iter_map; // record the outgoing relationship iterable for each node
-	
-	// tag::configuration parameters[]
+						// meet the requirement of r(s,v) / |N_out(v)| > min_rmax	
 	private int node_amount; // the total number of nodes in the graph
 	private Double alpha; // the probability stopped at each node during a random walk
-	//private Double rmax; // the residue(r) threshold for local update
 	private Double rsum; // the sum of all nodes' residues(r) during a local update process from s
-	// end::configuration parameters[]
 	private String preprocessing_dirName;
 	private Vector<Long> topk_nodeIds; // top-k node ids sorted by ppr
 	private HashMap<Long, Double> topk_res; // top-k ppr result
@@ -59,15 +53,9 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 		Q_next = new ConcurrentLinkedQueue<>();
 		topk_nodeIds = new Vector<>();
 		topk_res = new HashMap<>();
-		//this.out_degree_map = out_degree_map;
-		//this.rel_iter_map = rel_iter_map;
-		
-		// tag::configuration parameters assignment[]
 		this.node_amount = node_amount;
 		this.alpha = alpha;
-		//this.rmax = rmax;
 		this.rsum = rsum;
-		// end::configuration parameters assignment[]
 		preprocessing_dirName = "FWP_ppr_results/" + dir_db;
 	}
 	
@@ -78,9 +66,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 		topk_nodeIds.clear();
 		topk_res.clear();
 		Double rsum_local = 1.0;
-		
-		// tag::new version[]
-		//int out_neighbor_start = out_degree_map.get(start);
 		int nodeIdM_start = adjM.toMappedNodeId(nodeId_start); // start node id in adjacency matrix
 		int out_degree_start = adjM.degree(nodeIdM_start, Direction.OUTGOING);
 		
@@ -89,7 +74,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 			rsum = 0.0;
 			return;
 		}
-		// end::new version[]
 		
 		HashSet<Long> nodesInQueue = new HashSet<>(); // record nodes in Q
 		Queue<Long> Q = new ConcurrentLinkedQueue<>(); // nodes that can still propagate forward
@@ -111,8 +95,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 			// pi(s,v) = pi(s,v) + alpha * r(s,v)
 			
 			rsum_local -= residue_cur * alpha; //update rsum_local
-				
-	        //int out_neighbor_cur = out_degree_map.get(cur_node);
 			int nodeIdM_cur = adjM.toMappedNodeId(nodeId_cur); // current node id in adjacency matrix
 			int out_degree_cur = adjM.degree(nodeIdM_cur, Direction.OUTGOING);
 			
@@ -145,7 +127,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 					residue.put(nodeId2, new_residue_next);
 					//r(s,u) = r(s,u) + (1 - alpha) * r(s,v) / |N_out(v)|
 									
-					//int out_neighbor_next = out_degree_map.get(next_node);
 					int out_degree_next = adjM.degree(nodeIdM2, Direction.OUTGOING);
 					
 					if (new_residue_next / (double)out_degree_next >= (Double)rmax && !nodesInQueue.contains(nodeId2)) {
@@ -162,8 +143,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 	
 	public void forward_push_topk(Long nodeId_start, Queue<Long> Q, Double min_rmax, boolean isFirstFwdpush, 
 			Double rmax) { // forward push for topk ppr
-		// tag::new version[]
-		//int out_neighbor_start = out_degree_map.get(start);
 		int nodeIdM_start = adjM.toMappedNodeId(nodeId_start); // start node id in adjacency matrix
 		int out_degree_start = adjM.degree(nodeIdM_start, Direction.OUTGOING);
 		
@@ -172,7 +151,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 			rsum = 0.0;
 			return;
 		}
-		// end::new version[]
 		
 		if (isFirstFwdpush) // initialize residue if it's the first forward push
 			residue.put(nodeId_start, 1.0);
@@ -243,7 +221,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 							residue.put(nodeId2, new_residue_next);
 							//r(s,u) = r(s,u) + (1 - alpha) * r(s,v) / |N_out(v)|
 											
-							//int out_neighbor_next = out_degree_map.get(next_node);
 							int out_degree_next = adjM.degree(nodeIdM2, Direction.OUTGOING);
 							
 							if (new_residue_next / (double)out_degree_next >= rmax && !nodesInQueue.contains(nodeId2)) {
@@ -288,39 +265,8 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 		return new ConcurrentLinkedQueue<>(Q_next); 
 	}
 	
-	/*
-	public void setRmax(Double rmax) {
-		this.rmax = rmax;
-	}
-	*/
-	
-	/*
 	@Override
-	public void printResult() {
-		Iterator<Node> iter = null;
-		try ( Transaction tx = graphDb.beginTx() ) {
-			iter = graphDb.getAllNodes().iterator();
-			tx.success();
-		}
-		System.out.println("Forward-Push Residue(r) & Reserve(pi):");
-		while (iter.hasNext()) {
-			Node node = iter.next();
-			System.out.println("@" + getNodeName(node, graphDb) + '\t' + residue.get(node) + '\t' + reserve.get(node));
-		}
-	}
-	*/
-	
-	@Override
-	public void printWholeGraphResult() {
-		/*
-		System.out.println("Forward-Push Residue(r) & Reserve(pi):");
-		adjM.forEachNode(nodeIdM -> {
-			Long nodeId = adjM.toOriginalNodeId(nodeIdM);
-			System.out.println("@" + getNodeName(nodeId, graphDb) + '\t' + residue.get(nodeId) + '\t' + reserve.get(nodeId));
-			return true;
-		});
-		*/
-		
+	public void printWholeGraphResult() {		
 		List<Map.Entry<Long, Double>> reserve_list = new ArrayList<Map.Entry<Long, Double>>(reserve.entrySet());
 		reserve_list.sort( new Comparator<Map.Entry<Long, Double>>() { // sort in descending order
 			public int compare(Map.Entry<Long, Double> k1, Map.Entry<Long, Double> k2) { 
@@ -332,7 +278,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 		System.out.println("Forward-Push Reserve(pi) & Residue(r):");
 		for (Map.Entry<Long, Double> reserve_t : reserve_list) 
 			System.out.println("@" + getNodeName(reserve_t.getKey(), graphDb) + '\t' + reserve_t.getValue() + '\t' + residue.get(reserve_t.getKey()));
-	
 	}
 
 	@Override
@@ -343,7 +288,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 	@Override
 	public void preprocessing(Double dummy, Object rmax) {
 		// customize preprocessing_dirName
-		//preprocessing_dirName += ("/" + threshold + "_" + rmax);
 		preprocessing_dirName += ("/" + rmax);
 		
 		System.out.println("\nForward Push preprocessing started...");
@@ -380,8 +324,7 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 				for (Map.Entry< Long, Double > entry_t : reserve.entrySet()) {
 					Long nodeId_i = entry_t.getKey();
 					Double ppr_i = entry_t.getValue();
-					//if (ppr_i >= threshold)
-						fw.write(nodeId_i.toString() + '\t' + ppr_i.toString() + '\n');
+					fw.write(nodeId_i.toString() + '\t' + ppr_i.toString() + '\n');
 				}
 				fw.close();
 			}
@@ -419,30 +362,11 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 	}
 	
 	@Override
-	public void computeTopKPPR(Long nodeId_start, int k, Object rmax) { // store the top-k results in topk_res; might include more than k nodes
-		//if (!topk_res.isEmpty()) // topk_res is already set, then no need to compute again 
-		//	return true;
+	public void computeTopKPPR(Long nodeId_start, int k, Object rmax) { 
+		// store the top-k results in topk_res; might include more than k nodes
 		
-		// 1. perform Forward Push Whole-Graph SSPPR algo
 		computeWholeGraphPPR(nodeId_start, rmax);
-		
-		/*
-		// 2. retrieve top-k results and store in topk_res 
-		Double kth_reserve = kth_ppr(reserve.values().toArray(), k); // find the kth ppr
-		if (kth_reserve == null) { // there might be less than k results, so we copy all of them to topk_res
-			//System.out.println("Power Method: there might be less than k ppr results");
-			topk_res = new HashMap<>(reserve);
-			return;
-		}
-			
-		for (Map.Entry<Long, Double> reserve_t : reserve.entrySet()) {
-			// find the pprs not smaller than the kth ppr, so it's possible that
-			// the size of topk_res is greater than k
-			if (reserve_t.getValue() >= kth_reserve)
-				topk_res.put(reserve_t.getKey(), reserve_t.getValue());
-		}
-		return;
-		*/
+		// perform Forward Push Whole-Graph SSPPR algo
 	}
 	
 	@Override
@@ -492,7 +416,6 @@ public class Forward_Push extends Algo_Util implements Whole_Graph_Util_Interfac
 		
 		Double kth_reserve = kth_ppr(reserve.values().toArray(), k); // find the kth ppr
 		if (kth_reserve == null) { // there might be less than k results, so we copy all of them to topk_res
-			//System.out.println("Power Method: there might be less than k ppr results");
 			topk_res = new HashMap<>(reserve);
 			return;
 		}
