@@ -13,7 +13,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.internal.kernel.api.security.AccessMode.Static;
 
-public class Backward_Search { // All-Pair-Backward-Search algorithm based on backward searches
+public class Backward_Search { // All-Pair-Backward-Search algorithm for Single-Source PPR computation
 	private GraphDatabaseService graphDb;
 	Graph adjM; // adjacency matrix of the graph
 	private HashMap<Long, Double> residue; // propagated value, i.e r

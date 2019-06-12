@@ -29,7 +29,9 @@ import org.neo4j.graphdb.GraphDatabaseService;
 
 import io.netty.handler.codec.http2.StreamByteDistributor.Writer;
 
-public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Interface, Preprocessing_Interface, Topk_Util_Interface { // All-Pair-Backward-Search algorithm
+public class Base_Whole_Graph extends Algo_Util implements Whole_Graph_Util_Interface, Preprocessing_Interface, Topk_Util_Interface { 
+	// All-Pair-Backward-Search algorithm for All-Pair PPR (i.e preprocessing) computation
+	
 	private GraphDatabaseService graphDb;
 	private String dir_db;
 	Graph adjM; // adjacency matrix of the graph 
