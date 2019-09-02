@@ -14,7 +14,7 @@ For demo purpose, I use the "Game of Thrones" dataset. Directory "target/got.db"
 
 To be note is that we need extra effort to generate this "got.db" database file based on "GOT_Nodes.csv" and "GOT_Rels.csv".
 
-Firstly, make sure you have installed Neo4j on your host, and command "neo4j-admin" is available. Then the following command would generate a directory with name format "database-********-****-****-****-************" under "\<neo4j-home\>/neo4jDatabases".
+Firstly, make sure you have installed Neo4j on your host, and command "neo4j-admin" is available. Then the following command would generate a directory with name format "database-\*\*\*\*\*\*\*\*-\*\*\*\*-\*\*\*\*-\*\*\*\*-\*\*\*\*\*\*\*\*\*\*\*\*" under path "\<neo4j-home\>/neo4jDatabases".
 ```sh
 neo4j-admin import --relationships="GOT_Rels.csv" --nodes="GOT_Nodes.csv"
 ```
