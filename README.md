@@ -12,6 +12,16 @@ As part of my senior design, this is the implementation of two advanced Personal
 ## Dataset
 For demo purpose, I use the "Game of Thrones" dataset. Directory "target/got.db" stores the Neo4j database files. And directory "dataset/got" stores the relationship and node files in csv format.
 
+To be note is that we need extra effort to generate this "got.db" database file based on "GOT_Nodes.csv" and "GOT_Rels.csv".
+
+Firstly, make sure you have installed Neo4j on your host, and command "neo4j-admin" is available. Then the following command would generate a directory with name format "database-********-****-****-****-************" under "\<neo4j-home\>/neo4jDatabases".
+```sh
+neo4j-admin import --relationships="GOT_Rels.csv" --nodes="GOT_Nodes.csv"
+```
+
+Then under this new directory, we could find directory "installation-3.4.1\data\databases\graph.db". We need to copy and rename this directory to "target/got.db".
+
+
 ## Operation
 Run against the GOT dataset by default, this code would test the performance of the following algorithms on Single-Source PPR, Top-k PPR, and All-Pair PPR computing:
 * Monte-Carlo
@@ -20,7 +30,7 @@ Run against the GOT dataset by default, this code would test the performance of 
 * FORA
 * All-Pair-Backward-Search
 
-And we provide parameters as follows.
+The performance report would be exported to \<dataset name\>_AlgoPerfResults.txt. Besides, we provide parameters as follows.
 ```sh
 java PPR [options]
 ```
@@ -34,3 +44,7 @@ java PPR [options]
 	- -rel \<relationship type\>
 	- -db \<database directory\>
 	- -help
+- example:
+```sh
+java PPR -alpha 0.15 -eps 0.5 -query 50 -k 10 -node name -label Person -rel Relation -db target/got.db
+```
